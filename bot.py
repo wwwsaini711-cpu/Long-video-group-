@@ -107,7 +107,6 @@ def handle_payment_screenshot(message):
     bot.reply_to(message, "✅ आपका पेमेंट स्क्रीनशॉट प्राप्त हो गया है। एडमिन द्वारा वेरिफिकेशन के बाद आपको तुरंत फुल एक्सेस मिल जाएगा।")
 
 print("Bot Status: ONLINE - Long Video Group set to Subscription Plans")
-bot.infinity_polling(timeout=10, long_polling_timeout=5)
 from flask import Flask
 from threading import Thread
 
@@ -123,5 +122,6 @@ def run():
 def keep_alive():
     t = Thread(target=run)
     t.start()
+
 keep_alive()
 bot.infinity_polling(timeout=10, long_polling_timeout=5)
