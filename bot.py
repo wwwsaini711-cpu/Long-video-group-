@@ -7,7 +7,7 @@ ADMIN_CHAT_ID = 8986708946
 NEW_UPI_ID = "9983940698-2.wallet@phonepe"
 
 # 👉 शॉर्ट वीडियो चैनल की लिंक (यह डायरेक्ट खुलेगी)
-SHORT_GROUP_LINK = "https://t.me/+4_hES9AzcrBmZmJl" 
+SHORT_GROUP_LINK = "t.me/videogroup12346" 
 
 DEMO_VIDEOS = [
     "BAACAgUAAxkBAAMKaopxaRdmduoJBB0gMuepGoAPOXIAAmshAAKZEVhU-aEGhHh72u89BA",
