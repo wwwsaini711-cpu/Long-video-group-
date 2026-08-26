@@ -2,12 +2,12 @@ import telebot
 import time
 from telebot.types import InlineKeyboardMarkup, InlineKeyboardButton, InputMediaVideo
 
-BOT_TOKEN = "8845638115:AAG_M99pO3u9tFHi9b6duBMsr8BIbk4zLak"
+BOT_TOKEN = "8942479880:AAGlJB0I9UVRcpZqN1_0rhAPPSFJVoQWDDI"
 ADMIN_CHAT_ID = 8986708946  
 NEW_UPI_ID = "9983940698-2.wallet@phonepe"
 
 # 👉 शॉर्ट वीडियो चैनल की लिंक (यह डायरेक्ट खुलेगी)
-SHORT_GROUP_LINK = "t.me/videogroup12346" 
+SHORT_GROUP_LINK = "t.me/vidihkyyjddfh" 
 
 DEMO_VIDEOS = [
     "BAACAgUAAxkBAAMKaopxaRdmduoJBB0gMuepGoAPOXIAAmshAAKZEVhU-aEGhHh72u89BA",
