@@ -124,4 +124,5 @@ def keep_alive():
     t.start()
 
 keep_alive()
-bot.infinity_polling(timeout=10, long_polling_timeout=5)
+bot.infinity_polling(timeout=60, long_polling_timeout=30)
+
