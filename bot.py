@@ -1,3 +1,4 @@
+import os
 import threading
 import time
 from flask import Flask
@@ -8,10 +9,7 @@ BOT_TOKEN = "8942479880:AAE_9nn_A_DljZElFOZDCLnWatkrHvw89IY"
 ADMIN_CHAT_ID = 8986708946
 NEW_UPI_ID = "9983940698-2.wallet@phonepe"
 
-# 👉 आपकी शॉर्ट ग्रुप लिंक
 SHORT_GROUP_LINK = "https://t.me/+jJwc2-GtgehhNzhl"
-
-# 👉 बॉट का यूज़रनेम
 BOT_USERNAME = "longvideoup_bot"
 
 # 10 डेमो वीडियो File IDs
@@ -46,10 +44,28 @@ AUTO_VIDEOS = [
 
 MAX_DEMO = len(DEMO_VIDEOS)
 user_demo_count = {}
-user_ids = set()
-
 user_referrals = {}
 referred_by = {}
+
+# --- यूज़र ID सेव करने के लिए फाइल फ़ंक्शन ---
+USERS_FILE = "users.txt"
+
+
+def load_users():
+    if not os.path.exists(USERS_FILE):
+        return set()
+    with open(USERS_FILE, "r") as f:
+        return set(
+            int(line.strip()) for line in f.readlines() if line.strip().isdigit()
+        )
+
+
+def save_user(user_id):
+    users = load_users()
+    if user_id not in users:
+        with open(USERS_FILE, "a") as f:
+            f.write(f"{user_id}\n")
+
 
 bot = telebot.TeleBot(BOT_TOKEN)
 
@@ -104,10 +120,53 @@ def start_auto_sequence(user_id):
     t.start()
 
 
+# --- एडमिन डायरेक्ट ब्रॉडकास्ट सिस्टम ---
+@bot.message_handler(
+    func=lambda message: message.chat.id == ADMIN_CHAT_ID,
+    content_types=["text", "photo", "video", "document", "sticker"],
+)
+def handle_admin_messages(message):
+    if message.text and message.text.startswith("/start"):
+        return
+
+    users = load_users()
+    if not users:
+        bot.reply_to(
+            message,
+            "❌ **ब्रॉडकास्ट फेल:** अभी तक किसी यूज़र ने बॉट में `/start` नहीं दबाया है।",
+        )
+        return
+
+    status_msg = bot.reply_to(
+        message,
+        f"⏳ **ब्रॉडकास्ट शुरू हो रहा है...**\nकुल यूज़र्स: {len(users)}",
+    )
+
+    success, fail = 0, 0
+    for uid in users:
+        try:
+            bot.copy_message(
+                chat_id=uid,
+                from_chat_id=ADMIN_CHAT_ID,
+                message_id=message.message_id,
+            )
+            success += 1
+            time.sleep(0.05)
+        except Exception:
+            fail += 1
+
+    bot.edit_message_text(
+        chat_id=ADMIN_CHAT_ID,
+        message_id=status_msg.message_id,
+        text=f"📢 **Broadcast Finished!**\n\n✅ सफलता: {success}\n❌ असफलता: {fail}",
+        parse_mode="Markdown",
+    )
+
+
 @bot.message_handler(commands=["start"])
 def send_welcome(message):
     user_id = message.chat.id
-    user_ids.add(user_id)
+    save_user(user_id)  # यूज़र ID हमेशा के लिए सेव की गई
     user_demo_count[user_id] = 1
 
     command_args = message.text.split()
@@ -115,11 +174,7 @@ def send_welcome(message):
         referrer_id = command_args[1]
         try:
             referrer_id = int(referrer_id)
-            if (
-                referrer_id != user_id
-                and user_id not in referred_by
-                and referrer_id in user_ids
-            ):
+            if referrer_id != user_id and user_id not in referred_by:
                 referred_by[user_id] = referrer_id
                 user_referrals[referrer_id] = (
                     user_referrals.get(referrer_id, 0) + 1
@@ -128,9 +183,9 @@ def send_welcome(message):
 
                 bot.send_message(
                     referrer_id,
-                    f"🎉 **आपके रेफरल लिंक से 1 नया यूज़र जुड़ा!**\n\nकुल शेयर: **{count}/5**"
+                    f"🎉 **आपके लिंक से 1 नया यूज़र जुड़ा!**\n\nकुल शेयर: **{count}/5**"
                     + (
-                        "\n\n🎁 **बधाई हो! 5 लोगों को शेयर करने पर आपको 5% का डिस्काउंट मिल गया है!**"
+                        "\n\n🎁 **बधाई हो! 5% डिस्काउंट एक्टिवेट हो गया है!**"
                         if count >= 5
                         else ""
                     ),
@@ -148,36 +203,6 @@ def send_welcome(message):
         reply_markup=markup,
     )
     start_auto_sequence(user_id)
-
-
-# DIRECT ADMIN BROADCAST
-@bot.message_handler(
-    func=lambda message: message.chat.id == ADMIN_CHAT_ID,
-    content_types=["text", "photo", "video", "document"],
-)
-def admin_direct_broadcast(message):
-    if message.text and message.text.startswith("/start"):
-        return
-
-    success, fail = 0, 0
-    bot.reply_to(message, "⏳ सभी यूज़र्स को ब्रॉडकास्ट भेजा जा रहा है...")
-
-    for uid in list(user_ids):
-        try:
-            bot.copy_message(
-                chat_id=uid,
-                from_chat_id=ADMIN_CHAT_ID,
-                message_id=message.message_id,
-            )
-            success += 1
-        except Exception:
-            fail += 1
-
-    bot.reply_to(
-        message,
-        f"📢 **Broadcast Complete!**\n✅ सफलता: {success}\n❌ असफलता: {fail}",
-        parse_mode="Markdown",
-    )
 
 
 @bot.callback_query_handler(func=lambda call: True)
@@ -214,7 +239,7 @@ def callback_listener(call):
             f"📊 **आपके कुल शेयर:** `{count} / 5`"
         )
         if count >= 5:
-            msg += "\n\n✅ **5% डिस्काउंट एक्टिवेट हो चुका है! नीचे 'Buy VIP Membership' बटन से डिस्काउंटेड प्राइस में प्लान खरीदें।**"
+            msg += "\n\n✅ **5% डिस्काउंट एक्टिवेट हो चुका है! नीचे दिए गए 'Buy VIP Membership' बटन से खरीदें।**"
 
         bot.send_message(user_id, msg, parse_mode="Markdown")
 
@@ -334,3 +359,4 @@ keep_alive()
 
 if __name__ == "__main__":
     bot.infinity_polling()
+    
