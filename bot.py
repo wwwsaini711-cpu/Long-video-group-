@@ -126,3 +126,12 @@ def keep_alive():
 keep_alive()
 bot.infinity_polling(timeout=60, long_polling_timeout=30)
 
+@bot.message_handler(content_types=['photo', 'video'])
+def send_file_id(message):
+    if message.video:
+        file_id = message.video.file_id
+    elif message.photo:
+        file_id = message.photo[-1].file_id
+    
+    bot.reply_to(message, f"आपकी File ID है:\n\n<code>{file_id}</code>", parse_mode="HTML")
+    
