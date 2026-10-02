@@ -1,3 +1,17 @@
+# --- Quick File ID Extractor ---
+@bot.message_handler(content_types=['photo', 'video', 'document'])
+def catch_file_id(message):
+    f_id = None
+    if message.video:
+        f_id = message.video.file_id
+    elif message.photo:
+        f_id = message.photo[-1].file_id
+    elif message.document:
+        f_id = message.document.file_id
+        
+    if f_id:
+        bot.reply_to(message, f"<b>आपकी नई File ID:</b>\n\n<code>{f_id}</code>", parse_mode="HTML")
+
 import telebot
 import time
 from telebot.types import InlineKeyboardMarkup, InlineKeyboardButton, InputMediaVideo
