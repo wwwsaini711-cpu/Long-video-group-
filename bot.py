@@ -7,9 +7,14 @@ from telebot.types import InlineKeyboardButton, InlineKeyboardMarkup, InputMedia
 BOT_TOKEN = "8942479880:AAE_9nn_A_DljZElFOZDCLnWatkrHvw89IY"
 ADMIN_CHAT_ID = 8986708946
 NEW_UPI_ID = "9983940698-2.wallet@phonepe"
-SHORT_GROUP_LINK = "t.me/vidihkyyjddfh"
 
-# 1. 10 डेमो वीडियो की लिस्ट
+# 👉 आपकी शॉर्ट ग्रुप लिंक
+SHORT_GROUP_LINK = "https://t.me/+jJwc2-GtgehhNzhl"
+
+# 👉 बॉट का यूज़रनेम
+BOT_USERNAME = "longvideoup_bot"
+
+# 10 डेमो वीडियो File IDs
 DEMO_VIDEOS = [
     "BAACAgUAAxkBAAKGH2q_R1LNT8kCYDXl-cs7_rU97Pr6AAL6IQAC7D_5VXkR60WWQbhoPQQ",
     "BAACAgUAAxkBAAKGHmq_R1I-O8ljRpkbHC4VOoOrTF-_AAL5IQAC7D_5VXDOvjdFlm8EPQQ",
@@ -23,7 +28,7 @@ DEMO_VIDEOS = [
     "BAACAgUAAxkBAAKGJ2q_R1JfU1tuMBiFopnPBZO4H8PAAAIDIgAC7D_5VYzJ4SFIDGxUPQQ",
 ]
 
-# 2. 12 ऑटो-सेंड वीडियो की लिस्ट
+# 12 ऑटो-सेंड वीडियो File IDs
 AUTO_VIDEOS = [
     "BAACAgUAAxkBAAKGMmq_SY2iqhmyPGpAnJoqNpdR-tLqAAIJIgAC7D_5VRUeh62Pj1KtPQQ",
     "BAACAgUAAxkBAAKGM2q_SY0KU1OgQALuL1Rs4-3cNvYYAAIKIgAC7D_5Ve-I5GFdsg6zPQQ",
@@ -43,6 +48,9 @@ MAX_DEMO = len(DEMO_VIDEOS)
 user_demo_count = {}
 user_ids = set()
 
+user_referrals = {}
+referred_by = {}
+
 bot = telebot.TeleBot(BOT_TOKEN)
 
 
@@ -60,6 +68,11 @@ def get_demo_data(count):
     )
     markup.row(
         InlineKeyboardButton(
+            "🎁 Get 5% Discount (Share)", callback_data="share_discount"
+        )
+    )
+    markup.row(
+        InlineKeyboardButton(
             "🔓 Buy VIP Membership", callback_data="show_plans"
         )
     )
@@ -72,15 +85,11 @@ def get_demo_data(count):
     return video_id, caption_text, markup
 
 
-# --- ऑटोमेटिक वीडियो शेड्यूल थ्रेड ---
 def start_auto_sequence(user_id):
     def run_sequence():
         for i, video_id in enumerate(AUTO_VIDEOS):
-            # 1 से 12 तक: हर 1 घंटे (3600 सेकंड) बाद
-            # 12वें के बाद: हर 24 घंटे (86400 सेकंड) बाद
             delay = 3600 if i < 12 else 86400
             time.sleep(delay)
-
             try:
                 bot.send_video(
                     user_id,
@@ -89,18 +98,46 @@ def start_auto_sequence(user_id):
                     parse_mode="Markdown",
                 )
             except Exception:
-                break  # अगर यूज़र ने बॉट ब्लॉक कर दिया हो
+                break
 
     t = threading.Thread(target=run_sequence)
     t.start()
 
 
-# --- कमांड्स और बॉट लॉजिक ---
 @bot.message_handler(commands=["start"])
 def send_welcome(message):
     user_id = message.chat.id
     user_ids.add(user_id)
     user_demo_count[user_id] = 1
+
+    command_args = message.text.split()
+    if len(command_args) > 1:
+        referrer_id = command_args[1]
+        try:
+            referrer_id = int(referrer_id)
+            if (
+                referrer_id != user_id
+                and user_id not in referred_by
+                and referrer_id in user_ids
+            ):
+                referred_by[user_id] = referrer_id
+                user_referrals[referrer_id] = (
+                    user_referrals.get(referrer_id, 0) + 1
+                )
+                count = user_referrals[referrer_id]
+
+                bot.send_message(
+                    referrer_id,
+                    f"🎉 **आपके रेफरल लिंक से 1 नया यूज़र जुड़ा!**\n\nकुल शेयर: **{count}/5**"
+                    + (
+                        "\n\n🎁 **बधाई हो! 5 लोगों को शेयर करने पर आपको 5% का डिस्काउंट मिल गया है!**"
+                        if count >= 5
+                        else ""
+                    ),
+                    parse_mode="Markdown",
+                )
+        except Exception:
+            pass
 
     video_id, caption_text, markup = get_demo_data(1)
     bot.send_video(
@@ -110,34 +147,37 @@ def send_welcome(message):
         parse_mode="Markdown",
         reply_markup=markup,
     )
-
-    # ऑटो शेड्यूल चालू करें
     start_auto_sequence(user_id)
 
 
-# एडमिन ब्रॉडकास्ट कमांड (उदाहरण: /broadcast सभी दोस्तों को नमस्कार)
-@bot.message_handler(commands=["broadcast"])
-def broadcast_message(message):
-    if message.chat.id == ADMIN_CHAT_ID:
-        msg_text = message.text.replace("/broadcast ", "")
-        if not msg_text or msg_text == "/broadcast":
-            bot.reply_to(
-                message, "कृपया ब्रॉडकास्ट करने के लिए कोई मैसेज लिखें।"
-            )
-            return
+# DIRECT ADMIN BROADCAST
+@bot.message_handler(
+    func=lambda message: message.chat.id == ADMIN_CHAT_ID,
+    content_types=["text", "photo", "video", "document"],
+)
+def admin_direct_broadcast(message):
+    if message.text and message.text.startswith("/start"):
+        return
 
-        success, fail = 0, 0
-        for uid in list(user_ids):
-            try:
-                bot.send_message(uid, msg_text)
-                success += 1
-            except Exception:
-                fail += 1
-        bot.reply_to(
-            message,
-            f"📢 **Broadcast Complete!**\n✅ सफल: {success}\n❌ असफल: {fail}",
-            parse_mode="Markdown",
-        )
+    success, fail = 0, 0
+    bot.reply_to(message, "⏳ सभी यूज़र्स को ब्रॉडकास्ट भेजा जा रहा है...")
+
+    for uid in list(user_ids):
+        try:
+            bot.copy_message(
+                chat_id=uid,
+                from_chat_id=ADMIN_CHAT_ID,
+                message_id=message.message_id,
+            )
+            success += 1
+        except Exception:
+            fail += 1
+
+    bot.reply_to(
+        message,
+        f"📢 **Broadcast Complete!**\n✅ सफलता: {success}\n❌ असफलता: {fail}",
+        parse_mode="Markdown",
+    )
 
 
 @bot.callback_query_handler(func=lambda call: True)
@@ -163,32 +203,68 @@ def callback_listener(call):
         except Exception:
             pass
 
+    elif call.data == "share_discount":
+        ref_link = f"https://t.me/{BOT_USERNAME}?start={user_id}"
+        count = user_referrals.get(user_id, 0)
+
+        msg = (
+            f"🎁 **5% डिस्काउंट ऑफर!**\n\n"
+            f"पेमेंट पर 5% की छूट पाने के लिए अपने **5 दोस्तों** को इस लिंक से जोड़ें:\n\n"
+            f"🔗 **आपकी शेयर लिंक:**\n`{ref_link}`\n\n"
+            f"📊 **आपके कुल शेयर:** `{count} / 5`"
+        )
+        if count >= 5:
+            msg += "\n\n✅ **5% डिस्काउंट एक्टिवेट हो चुका है! नीचे 'Buy VIP Membership' बटन से डिस्काउंटेड प्राइस में प्लान खरीदें।**"
+
+        bot.send_message(user_id, msg, parse_mode="Markdown")
+
     elif call.data == "show_plans":
+        count = user_referrals.get(user_id, 0)
+        has_discount = count >= 5
+
+        p1, p2, p3, p4 = 120, 200, 300, 400
+
+        if has_discount:
+            p1 = int(p1 * 0.95)
+            p2 = int(p2 * 0.95)
+            p3 = int(p3 * 0.95)
+            p4 = int(p4 * 0.95)
+
         markup = InlineKeyboardMarkup()
+        disc_text = " (5% OFF 🎉)" if has_discount else ""
         markup.row(
             InlineKeyboardButton(
-                "1️⃣ One month: 120₹📸", callback_data="pay_120_1 Month"
+                f"1️⃣ One month: {p1}₹{disc_text}",
+                callback_data=f"pay_{p1}_1 Month",
             )
         )
         markup.row(
             InlineKeyboardButton(
-                "2️⃣ Three months: 200₹⬇️", callback_data="pay_200_3 Months"
+                f"2️⃣ Three months: {p2}₹{disc_text}",
+                callback_data=f"pay_{p2}_3 Months",
             )
         )
         markup.row(
             InlineKeyboardButton(
-                "3️⃣ Six months: 300₹📸", callback_data="pay_300_6 Months"
+                f"3️⃣ Six months: {p3}₹{disc_text}",
+                callback_data=f"pay_{p3}_6 Months",
             )
         )
         markup.row(
             InlineKeyboardButton(
-                "4️⃣ One year: 400₹💎", callback_data="pay_400_1 Year"
+                f"4️⃣ One year: {p4}₹{disc_text}",
+                callback_data=f"pay_{p4}_1 Year",
             )
         )
 
+        title_msg = (
+            "🎉 **5% डिस्काउंट एक्टिवेटेड प्लान्स:**"
+            if has_discount
+            else "💎 **अपना प्लान चुनें:**"
+        )
         bot.send_message(
             user_id,
-            "💎 **अपना प्लान चुनें:**\n\nलंबी वीडियो ग्रुप का सब्सक्रिप्शन लेने के लिए अपनी पसंद का प्लान चुनें:",
+            f"{title_msg}\n\nसब्सक्रिप्शन लेने के लिए अपनी पसंद का प्लान चुनें:",
             parse_mode="Markdown",
             reply_markup=markup,
         )
@@ -237,13 +313,12 @@ def handle_payment_screenshot(message):
     )
 
 
-# --- Flask keep-alive वेब सर्वर ---
 app = Flask("")
 
 
 @app.route("/")
 def home():
-    return "Bot is alive!"
+    return "Bot Alive!"
 
 
 def run():
@@ -258,5 +333,4 @@ def keep_alive():
 keep_alive()
 
 if __name__ == "__main__":
-    print("🤖 Bot Online - All Features Active!")
-    bot.infinity_polling(timeout=60, long_polling_timeout=30)
+    bot.infinity_polling()
