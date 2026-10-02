@@ -2,7 +2,7 @@ import telebot
 import time
 from telebot.types import InlineKeyboardMarkup, InlineKeyboardButton, InputMediaVideo
 
-BOT_TOKEN = "8942479880:AAGlJB0I9UVRcpZqN1_0rhAPPSFJVoQWDDI"
+BOT_TOKEN = "8942479880:AAE_9nn_A_DljZElFOZDCLnWatkrHvw89IY"
 ADMIN_CHAT_ID = 8986708946  
 NEW_UPI_ID = "9983940698-2.wallet@phonepe"
 
